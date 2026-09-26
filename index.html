@@ -360,7 +360,7 @@ function loadObj(n){MODELS.filter(m=>m.obj===n).forEach(m=>loadFile(m.url));}
 // auto: load models of any object the camera comes within 700 m of (one at a time)
 setInterval(()=>{if(busy)return;const c=camera.position;let best=null,bd=1e9;
  MODELS.forEach(md=>{if(loaded.has(md.url)||loading.has(md.url))return;const d=c.distanceTo(objCenter(md));if(d<bd){bd=d;best=md;}});
- if(best&&bd<700)loadFile(best.url);},800);
+ if(best&&(bd<700||performance.now()>4000))loadFile(best.url);},800);
 
 // ---------- object list & labels ----------
 const OBJS=[{n:1,t:'Ворота Quán Âm',p:GP,v:[GP.clone().add(SE.clone().multiplyScalar(170)).setY(60),GP.clone().setY(14)]},
@@ -371,7 +371,7 @@ const OBJS=[{n:1,t:'Ворота Quán Âm',p:GP,v:[GP.clone().add(SE.clone().mu
 const TODO=[];
 const ul=document.getElementById('objs');
 function updateList(){ul.innerHTML='';OBJS.forEach(o=>{const all=MODELS.filter(m=>m.obj===o.n),ok=all.every(m=>loaded.has(m.url));
-  const li=document.createElement('li');li.tabIndex=0;li.innerHTML=`<span class="n">${o.n==='re'?'★':o.n}</span><span>${o.t}</span><span class="st ${ok?'ok':''}">${ok?'3D ✓':'3D'}</span>`;li.onclick=li.onkeydown=(e)=>{if(e.type==='keydown'&&e.key!=='Enter')return;stopTour();loadObj(o.n);fly(o.v[0],o.v[1]);};ul.appendChild(li);});
+  const li=document.createElement('li');li.tabIndex=0;li.innerHTML=`<span class="n">${o.n==='re'?'★':o.n}</span><span>${o.t}</span><span class="st ${ok?'ok':''}">${ok?'3D ✓':'3D'}</span>`;li.onclick=li.onkeydown=(e)=>{if(e.type==='keydown'&&e.key!=='Enter')return;stopTour();loadObj(o.n);fly(o.v[0],o.v[1]);openObj(o);};ul.appendChild(li);});
  CONCEPTS.forEach(o=>{const li=document.createElement('li');li.tabIndex=0;li.style.opacity=.8;li.innerHTML=`<span class="n">${o.n}</span><span>${o.t}</span><span class="st">концепт</span>`;li.onclick=li.onkeydown=(e)=>{if(e.type==='keydown'&&e.key!=='Enter')return;stopTour();fly(o.v[0],o.v[1]);};ul.appendChild(li);});
  TODO.forEach(([n,t])=>{const li=document.createElement('li');li.style.opacity=.55;li.style.cursor='default';li.innerHTML=`<span class="n">${n}</span><span>${t}</span><span class="st">концепт</span>`;ul.appendChild(li);});}
 updateList();
@@ -438,6 +438,9 @@ document.getElementById('kua').onsubmit=e=>{e.preventDefault();const y=+document
 document.getElementById('kclear').onclick=()=>{kuaGood=null;colorPlots();document.getElementById('kres').textContent='Подбор сброшен.';};
 const card=document.getElementById('card'),lb2=document.getElementById('lightbox');lb2.onclick=()=>lb2.hidden=true;
 const LEADS=[];
+const OBJGAL={"1": ["g_gate_r3_2_aerial.webp", "g_gate_r3_3_facade.webp", "g_gate_r3_4_human.webp", "g_gate_r3_1_night.webp"], "2": ["g_kinder_1_aerial.webp", "g_kinder_2_entrance.webp", "g_kinder_3_interior.webp", "g_kinder_4_nest.webp", "g_play_1_aerial.webp", "g_play_2_dragon.webp", "g_play_4_water.webp"], "3": ["g_health_1_aerial.webp", "g_health_2_entrance.webp", "g_health_3_interior.webp", "g_health_4_baths.webp"], "4": ["g_sci_1_aerial.webp", "g_sci_2_expo.webp", "g_sci_3_biome.webp", "g_sci_4_observatory.webp"], "re": ["re_villa.webp", "re_villa_interior.webp", "re_villa_plan.webp", "re_villa_street.webp", "re_townhouse.webp", "re_lodge.webp"]},OBJTXT={"1": "Главный вход в город: ворота в традиционном вьетнамском стиле и белая статуя Quán Âm высотой 33 м в круге воды и 108 фонарей.", "2": "Детский сад «Зеркальный лотос» и игровая площадка: дракон-горка, гнездо, барабаны и черепаха.", "3": "Институт здоровья имени Tuệ Tĩnh: восточная медицина, термальные бани, хижины для процедур.", "4": "Кампус природы и света Minh Tâm: выставочный павильон Ø108 м для новых изобретений, биокупола и обсерватория.", "re": "Эко-виллы на кольце вокруг лотоса, таунхаусы и ретрит-лоджи. Нажмите на любой дом на карте, чтобы открыть карточку с ценой."};
+function openObj(o){const g=OBJGAL[o.n]||[];if(!g.length)return;card.innerHTML=`<button class="x" aria-label="Закрыть">×</button><div class="code">Объект ${o.n==='re'?'★':o.n} · визуализации</div><h2>${o.t}</h2><div class="note" style="font-size:12.5px;color:var(--egg)">${OBJTXT[o.n]||''}</div><div class="gal">${g.map(p=>`<img src="${p}" alt="${o.t}" loading="lazy">`).join('')}</div><div class="note">3D-модель загружается на карте. Нажмите на фото, чтобы увеличить.</div>`;card.hidden=false;card.querySelector('.x').onclick=()=>card.hidden=true;card.querySelectorAll('.gal img').forEach(im=>im.onclick=()=>{lb2.innerHTML=`<img src="${im.src}" alt="">`;lb2.hidden=false;});}
+
 function openCard(u){const ph=PHOTOS[u.type]||[];const fs=u.sect;
  card.innerHTML=`<button class="x" aria-label="Закрыть">×</button><div class="code">${u.code}</div><h2>${u.title}</h2>
  <div class="price">${fmt(u.price)}</div><span class="pill ${u.status}">${ST[u.status].ru}</span>
